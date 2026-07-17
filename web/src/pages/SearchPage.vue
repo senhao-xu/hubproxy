@@ -1,7 +1,7 @@
 ﻿<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ChevronLeft, ChevronRight, Copy, Loader2, Search } from 'lucide-vue-next'
+import { ArrowDown, ArrowLeft, ChevronLeft, ChevronRight, Copy, Loader2, Search, Star, Tags } from 'lucide-vue-next'
 import {
   fetchTags,
   searchImages,
@@ -220,7 +220,7 @@ watch(
 </script>
 
 <template>
-  <div>
+  <div class="mx-auto max-w-6xl">
     <PageHero
       eyebrow="Docker Hub"
       title="镜像搜索"
@@ -228,69 +228,73 @@ watch(
     />
 
     <Transition name="fade" mode="out-in">
-      <div v-if="!selected" key="search" class="mx-auto max-w-3xl space-y-6">
-        <div class="flex flex-col gap-3 sm:flex-row">
-          <Input
-            v-model="query"
-            class="sm:flex-1"
-            placeholder="例如 nginx、redis、library/ubuntu"
-            @keydown.enter="onSearch"
-          />
-          <Button :disabled="searching" @click="onSearch">
-            <Loader2 v-if="searching" class="size-4 animate-spin" />
-            <Search v-else class="size-4" />
-            {{ searching ? '搜索中...' : '搜索' }}
-          </Button>
+      <div v-if="!selected" key="search" class="space-y-5">
+        <section class="workspace-panel">
+          <div class="panel-header">
+            <div class="panel-heading"><Search class="size-4 text-primary" />镜像仓库检索</div>
+            <span class="status-badge font-mono">DOCKER HUB</span>
+          </div>
+          <div class="panel-body">
+            <div class="flex flex-col gap-2 sm:flex-row">
+              <Input
+                v-model="query"
+                class="sm:flex-1"
+                aria-label="搜索 Docker Hub 镜像"
+                placeholder="例如 nginx、redis、library/ubuntu"
+                @keydown.enter="onSearch"
+              />
+              <Button :disabled="searching" @click="onSearch">
+                <Loader2 v-if="searching" class="size-4 animate-spin" />
+                <Search v-else class="size-4" />
+                {{ searching ? '搜索中...' : '搜索' }}
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        <p v-if="searchError" role="alert" class="status-message status-error">{{ searchError }}</p>
+
+        <div v-if="searching" class="space-y-2">
+          <div v-for="i in 3" :key="i" class="skeleton-row" />
         </div>
 
-        <p
-          v-if="searchError"
-          class="text-center text-destructive"
-        >
-          {{ searchError }}
-        </p>
-
-        <div v-if="searching" class="space-y-3">
-          <div v-for="i in 3" :key="i" class="h-16 animate-pulse rounded-xl bg-muted" />
-        </div>
-
-        <div v-else-if="hasResults" class="space-y-2">
-          <p class="text-center text-muted-foreground">
-            共 {{ resultCount }} 条结果
-            <template v-if="totalPages > 1"> · 第 {{ resultsPage }} / {{ totalPages }} 页</template>
-          </p>
-          <div class="divide-y divide-border border-y border-border">
+        <section v-else-if="hasResults" class="space-y-2">
+          <div aria-live="polite" class="flex flex-wrap items-center justify-between gap-2 px-1 text-sm text-muted-foreground">
+            <p>共 <span class="font-semibold text-foreground">{{ resultCount }}</span> 条结果 <template v-if="totalPages > 1">/ 第 {{ resultsPage }} / {{ totalPages }} 页</template></p>
+            <p class="font-mono text-xs">SELECT A REPOSITORY TO INSPECT TAGS</p>
+          </div>
+          <div class="data-list">
             <button
               v-for="item in results"
               :key="`${item.namespace}/${item.name}`"
               type="button"
-              class="w-full py-4 text-left transition-colors duration-150 hover:text-primary"
+              class="data-row data-row-action w-full text-left"
               @click="loadTagPage(item, 1)"
             >
-              <div class="mb-1 flex flex-wrap items-center gap-2">
-                <span class="text-base font-medium">{{ item.displayName }}</span>
-                <span
-                  v-if="item.raw.is_official"
-                  class="rounded-full bg-primary/12 px-2 py-0.5 text-[11px] text-primary"
-                >官方</span>
-                <span
-                  v-if="item.raw.star_count"
-                  class="text-xs text-muted-foreground"
-                >★ {{ formatNumber(item.raw.star_count) }}</span>
-                <span
-                  v-if="item.raw.pull_count"
-                  class="text-xs text-muted-foreground"
-                >⬇ {{ formatNumber(item.raw.pull_count) }}</span>
+              <div class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div class="min-w-0">
+                  <div class="mb-1 flex flex-wrap items-center gap-2">
+                    <span class="break-all font-mono text-sm font-semibold text-foreground">{{ item.displayName }}</span>
+                    <span
+                      v-if="item.raw.is_official"
+                      class="status-badge min-h-0 border-primary/25 bg-primary/8 py-0.5 text-[11px] text-primary"
+                    >官方</span>
+                  </div>
+                  <p class="line-clamp-2 [overflow-wrap:anywhere] text-sm leading-6 text-muted-foreground">{{ item.raw.short_description || '暂无描述' }}</p>
+                </div>
+                <div class="flex shrink-0 gap-3 font-mono text-xs text-muted-foreground">
+                  <span v-if="item.raw.star_count" class="inline-flex items-center gap-1"><Star class="size-3" />{{ formatNumber(item.raw.star_count) }}</span>
+                  <span v-if="item.raw.pull_count" class="inline-flex items-center gap-1"><ArrowDown class="size-3" />{{ formatNumber(item.raw.pull_count) }}</span>
+                </div>
               </div>
-              <p class="line-clamp-2 text-muted-foreground">
-                {{ item.raw.short_description || '暂无描述' }}
-              </p>
             </button>
           </div>
           <div v-if="totalPages > 1" class="flex items-center justify-center gap-1.5 pt-2">
             <Button
               variant="outline"
               size="sm"
+              aria-label="上一页搜索结果"
+              title="上一页"
               :disabled="searching || resultsPage <= 1"
               @click="loadResultsPage(resultsPage - 1)"
             >
@@ -300,82 +304,99 @@ watch(
             <Button
               variant="outline"
               size="sm"
+              aria-label="下一页搜索结果"
+              title="下一页"
               :disabled="searching || !hasMoreResults"
               @click="loadResultsPage(resultsPage + 1)"
             >
               <ChevronRight class="size-4" />
             </Button>
           </div>
-        </div>
+        </section>
       </div>
 
-      <div v-else key="tags" class="mx-auto max-w-3xl space-y-6">
+      <div v-else key="tags" class="space-y-5">
         <button
           type="button"
-          class="text-muted-foreground transition-colors hover:text-primary"
+          class="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           @click="backToResults"
         >
-          ← 返回搜索结果
+          <ArrowLeft class="size-4" />返回搜索结果
         </button>
 
-        <div class="space-y-2 text-center">
-          <div class="flex flex-wrap items-center justify-center gap-2">
-            <h2 class="text-2xl font-semibold tracking-tight sm:text-3xl">{{ selected.fullRepoName }}</h2>
-            <span
-              v-if="selected.raw.is_official"
-              class="rounded-full bg-primary/12 px-2 py-0.5 text-[11px] text-primary"
-            >官方</span>
+        <section class="workspace-panel">
+          <div class="panel-header">
+            <div class="min-w-0 space-y-1">
+              <div class="panel-heading">
+                <Tags class="size-4 shrink-0 text-primary" />
+                <h2 class="break-all font-mono text-base sm:text-lg">{{ selected.fullRepoName }}</h2>
+                <span
+                  v-if="selected.raw.is_official"
+                  class="status-badge min-h-0 border-primary/25 bg-primary/8 py-0.5 text-[11px] text-primary"
+                >官方</span>
+              </div>
+              <p class="panel-description">{{ selected.raw.short_description || '暂无描述' }}</p>
+            </div>
+            <Button variant="outline" size="sm" @click="copyPull()"><Copy class="size-4" />复制拉取命令</Button>
           </div>
-          <p class="text-base text-muted-foreground">
-            {{ selected.raw.short_description || '暂无描述' }}
-          </p>
-          <Transition name="fade">
-            <p v-if="copyHint" class="text-muted-foreground">{{ copyHint }}</p>
-          </Transition>
-        </div>
-
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <Input v-model="tagFilter" class="sm:flex-1" placeholder="筛选当前页标签..." />
-          <div class="flex items-center gap-1.5">
-            <Button
-              variant="outline"
-              size="sm"
-              :disabled="tagsLoading || tagsPage <= 1"
-              @click="loadTagPage(selected, tagsPage - 1)"
-            >
-              <ChevronLeft class="size-4" />
-            </Button>
-            <span class="min-w-14 text-center text-muted-foreground">第 {{ tagsPage }} 页</span>
-            <Button
-              variant="outline"
-              size="sm"
-              :disabled="tagsLoading || !tagsHasMore"
-              @click="loadTagPage(selected, tagsPage + 1)"
-            >
-              <ChevronRight class="size-4" />
-            </Button>
-            <Button variant="outline" size="sm" @click="copyPull()">
-              <Copy class="size-4" />
-              复制
-            </Button>
+          <div class="panel-body space-y-4">
+            <Transition name="fade">
+              <p
+                v-if="copyHint"
+                :role="copyHint === '复制失败' ? 'alert' : 'status'"
+                class="status-message break-all"
+                :class="copyHint === '复制失败' ? 'status-error' : 'status-success'"
+              >
+                {{ copyHint }}
+              </p>
+            </Transition>
+            <div class="flex flex-col gap-2 lg:flex-row lg:items-center">
+              <Input
+                v-model="tagFilter"
+                class="sm:flex-1"
+                aria-label="筛选当前页标签"
+                placeholder="筛选当前页标签..."
+              />
+              <div class="flex flex-wrap items-center gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  aria-label="上一页标签"
+                  title="上一页"
+                  :disabled="tagsLoading || tagsPage <= 1"
+                  @click="loadTagPage(selected, tagsPage - 1)"
+                >
+                  <ChevronLeft class="size-4" />
+                </Button>
+                <span class="min-w-14 text-center text-muted-foreground">第 {{ tagsPage }} 页</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  aria-label="下一页标签"
+                  title="下一页"
+                  :disabled="tagsLoading || !tagsHasMore"
+                  @click="loadTagPage(selected, tagsPage + 1)"
+                >
+                  <ChevronRight class="size-4" />
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <p v-if="tagsError" class="text-center text-destructive">{{ tagsError }}</p>
+        <p v-if="tagsError" role="alert" class="status-message status-error">{{ tagsError }}</p>
         <div v-else-if="tagsLoading" class="space-y-3">
-          <div v-for="i in 5" :key="i" class="h-14 animate-pulse rounded-xl bg-muted" />
+          <div v-for="i in 5" :key="i" class="skeleton-row" />
         </div>
-        <p v-else-if="displayTags.length === 0" class="text-center text-muted-foreground">
-          没有匹配的标签
-        </p>
-        <div v-else class="divide-y divide-border border-y border-border">
+        <p v-else-if="displayTags.length === 0" class="status-message status-info">没有匹配的标签</p>
+        <div v-else class="data-list">
           <div
             v-for="{ tag, archs, size } in displayTags"
             :key="tag.name"
-            class="flex items-start justify-between gap-3 py-4"
+            class="data-row flex items-start justify-between gap-3"
           >
             <div class="min-w-0 space-y-1.5">
-              <p class="truncate text-base font-medium">{{ tag.name }}</p>
+              <p class="break-all font-mono text-sm font-semibold">{{ tag.name }}</p>
               <p class="text-xs text-muted-foreground">
                 <template v-if="size">{{ size }} · </template>
                 {{ formatTimeAgo(tag.last_updated) }}
@@ -384,11 +405,17 @@ watch(
                 <span
                   v-for="arch in archs"
                   :key="arch"
-                  class="rounded-full bg-primary/10 px-2 py-0.5 font-mono text-[11px] text-primary"
+                  class="rounded-sm border border-primary/20 bg-primary/8 px-2 py-0.5 font-mono text-[11px] text-primary"
                 >{{ arch }}</span>
               </div>
             </div>
-            <Button variant="outline" size="sm" class="shrink-0" @click="copyPull(tag.name)">
+            <Button
+              variant="outline"
+              size="sm"
+              class="shrink-0"
+              :aria-label="`复制 ${tag.name} 拉取命令`"
+              @click="copyPull(tag.name)"
+            >
               <Copy class="size-4" />
               复制
             </Button>

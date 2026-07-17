@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Loader2 } from 'lucide-vue-next'
+import { Archive, Boxes, Loader2 } from 'lucide-vue-next'
 import {
   fetchImageInfo,
   prepareBatchDownload,
@@ -101,76 +101,105 @@ async function onBatchSubmit() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-3xl">
+  <div class="mx-auto max-w-6xl">
     <PageHero
       eyebrow="Offline Image"
       title="离线镜像"
       subtitle="流式下载，兼容 docker load，支持多架构。"
     />
 
-    <section class="field-block">
-      <h2 class="text-center text-sm font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-        单镜像
-      </h2>
+    <div class="space-y-5">
+      <section class="workspace-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-heading">
+              <Archive class="size-4 text-primary" />
+              单镜像下载
+            </div>
+            <p class="panel-description">下载一个可供 docker load 使用的离线镜像包。</p>
+          </div>
+          <span class="panel-index">01</span>
+        </div>
+        <div class="panel-body space-y-4">
+          <Transition name="fade" mode="out-in">
+            <p v-if="singleError" key="error" role="alert" class="status-message status-error">{{ singleError }}</p>
+            <p v-else-if="singleStatus" key="status" role="status" class="status-message status-info">
+              <Loader2 v-if="singleLoading" class="size-4 shrink-0 animate-spin" />
+              {{ singleStatus }}
+            </p>
+          </Transition>
+          <div class="grid min-w-0 items-end gap-4 md:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(11rem,0.8fr)_auto]">
+            <label class="min-w-0">
+              <span class="field-label">镜像名称</span>
+              <Input v-model="singleImage" placeholder="nginx 或 user/app:tag" />
+            </label>
+            <label class="min-w-0">
+              <span class="field-label">目标架构（可选）</span>
+              <Input v-model="singlePlatform" placeholder="linux/amd64" />
+            </label>
+            <div class="min-w-0">
+              <span class="field-label">压缩层</span>
+              <div class="setting-row min-h-10 py-1.5">
+                <p class="min-w-0 text-xs text-muted-foreground">减小下载包体积</p>
+                <Switch v-model:checked="singleCompressed" aria-label="单镜像使用压缩层" />
+              </div>
+            </div>
+            <Button class="w-full md:col-span-2 lg:col-span-1 lg:w-auto" :disabled="singleLoading" @click="onSingleSubmit">
+              <Loader2 v-if="singleLoading" class="size-4 animate-spin" />
+              {{ singleLoading ? '准备中...' : '立即下载' }}
+            </Button>
+          </div>
+        </div>
+      </section>
 
-      <Transition name="fade" mode="out-in">
-        <p v-if="singleError" key="error" class="text-center text-destructive">{{ singleError }}</p>
-        <p v-else-if="singleStatus" key="status" class="flex items-center justify-center gap-2 text-muted-foreground">
-          <Loader2 v-if="singleLoading" class="size-4 animate-spin" />
-          {{ singleStatus }}
-        </p>
-      </Transition>
-
-      <label class="block space-y-1.5">
-        <span>镜像名称</span>
-        <Input v-model="singleImage" placeholder="nginx 或 user/app:tag" />
-      </label>
-      <label class="block space-y-1.5">
-        <span>目标架构（可选）</span>
-        <Input v-model="singlePlatform" placeholder="linux/amd64" />
-      </label>
-      <div class="flex items-center justify-between py-1">
-        <span>压缩层</span>
-        <Switch v-model:checked="singleCompressed" />
-      </div>
-      <Button class="w-full" :disabled="singleLoading" @click="onSingleSubmit">
-        <Loader2 v-if="singleLoading" class="size-4 animate-spin" />
-        {{ singleLoading ? '准备中...' : '立即下载' }}
-      </Button>
-    </section>
-
-    <section class="section-gap field-block">
-      <h2 class="text-center text-sm font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-        批量下载
-      </h2>
-
-      <Transition name="fade" mode="out-in">
-        <p v-if="batchError" key="error" class="text-center text-destructive">{{ batchError }}</p>
-        <p v-else-if="batchStatus" key="status" class="flex items-center justify-center gap-2 text-muted-foreground">
-          <Loader2 v-if="batchLoading" class="size-4 animate-spin" />
-          {{ batchStatus }}
-        </p>
-      </Transition>
-
-      <label class="block space-y-1.5">
-        <span>镜像列表</span>
-        <Textarea
-          v-model="batchText"
-          placeholder="alpine&#10;redis:alpine&#10;user/app:1.0"
-        />
-      </label>
-      <label class="block space-y-1.5">
-        <span>目标架构（可选）</span>
-        <Input v-model="batchPlatform" placeholder="linux/amd64" />
-      </label>
-      <div class="flex items-center justify-between py-1">
-        <span>压缩层</span>
-        <Switch v-model:checked="batchCompressed" />
-      </div>
-      <Button class="w-full" :disabled="batchLoading" @click="onBatchSubmit">
-        <Loader2 v-if="batchLoading" class="size-4 animate-spin" />
-        {{ batchLoading ? '准备中...' : '批量下载' }}
-      </Button>
-    </section>
+      <section class="workspace-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-heading">
+              <Boxes class="size-4 text-info" />
+              批量下载
+            </div>
+            <p class="panel-description">每行一个镜像，忽略以 # 开头的注释。</p>
+          </div>
+          <span class="panel-index">02</span>
+        </div>
+        <div class="panel-body space-y-4">
+          <Transition name="fade" mode="out-in">
+            <p v-if="batchError" key="error" role="alert" class="status-message status-error">{{ batchError }}</p>
+            <p v-else-if="batchStatus" key="status" role="status" class="status-message status-info">
+              <Loader2 v-if="batchLoading" class="size-4 shrink-0 animate-spin" />
+              {{ batchStatus }}
+            </p>
+          </Transition>
+          <div class="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-start">
+            <label class="min-w-0">
+              <span class="field-label">镜像列表</span>
+              <Textarea
+                v-model="batchText"
+                class="min-h-56 lg:min-h-64"
+                placeholder="alpine&#10;redis:alpine&#10;user/app:1.0"
+              />
+            </label>
+            <div class="field-block min-w-0">
+              <label class="min-w-0">
+                <span class="field-label">目标架构（可选）</span>
+                <Input v-model="batchPlatform" placeholder="linux/amd64" />
+              </label>
+              <div class="min-w-0">
+                <span class="field-label">压缩层</span>
+                <div class="setting-row min-h-10 py-1.5">
+                  <p class="min-w-0 text-xs text-muted-foreground">减小下载包体积</p>
+                  <Switch v-model:checked="batchCompressed" aria-label="批量下载使用压缩层" />
+                </div>
+              </div>
+              <Button class="w-full" :disabled="batchLoading" @click="onBatchSubmit">
+                <Loader2 v-if="batchLoading" class="size-4 animate-spin" />
+                {{ batchLoading ? '准备中...' : '批量下载' }}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
   </div>
 </template>

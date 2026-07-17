@@ -16,7 +16,8 @@ const emit = defineEmits<{ toggle: [] }>()
   <Button
     variant="ghost"
     size="icon"
-    aria-label="切换主题"
+    :aria-label="isDark ? '切换到亮色主题' : '切换到暗色主题'"
+    :title="isDark ? '切换到亮色主题' : '切换到暗色主题'"
     :class="cn(buttonClass)"
     @click="emit('toggle')"
   >
