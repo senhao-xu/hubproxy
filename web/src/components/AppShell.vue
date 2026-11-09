@@ -71,7 +71,7 @@ onMounted(() => {
           </RouterLink>
           <ThemeToggle :is-dark="isDark" button-class="ml-1" @toggle="toggleTheme" />
           <a
-            href="https://github.com/sky22333/hubproxy"
+            href="https://github.com/senhao-xu/hubproxy"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="在 GitHub 查看 HubProxy"
@@ -127,7 +127,7 @@ onMounted(() => {
       <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 text-xs text-muted-foreground">
         <span class="font-mono">HubProxy / developer utility</span>
         <a
-          href="https://github.com/sky22333/hubproxy"
+          href="https://github.com/senhao-xu/hubproxy"
           target="_blank"
           rel="noopener noreferrer"
           aria-label="在 GitHub 查看 HubProxy"

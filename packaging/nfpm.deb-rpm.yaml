@@ -5,10 +5,10 @@ version: ${NFPM_VERSION}
 release: "1"
 section: net
 priority: optional
-maintainer: sky22333
+maintainer: senhao-xu
 description: Docker and GitHub acceleration proxy server
-vendor: sky22333
-homepage: https://github.com/sky22333/hubproxy
+vendor: senhao-xu
+homepage: https://github.com/senhao-xu/hubproxy
 license: MIT
 
 contents:

@@ -6,7 +6,7 @@
 
 
 <p align="center">
-  <img src="https://count.getloli.com/get/@sky22333.hubproxy?theme=rule34" alt="Visitors">
+  <img src="https://count.getloli.com/get/@senhao-xu.hubproxy?theme=rule34" alt="Visitors">
 </p>
 
 
@@ -35,7 +35,7 @@ docker run -d \
   --name hubproxy \
   -p 5000:5000 \
   --restart always \
-  ghcr.io/sky22333/hubproxy
+  ghcr.io/senhao-xu/hubproxy
 ```
 
 验证服务：
@@ -51,7 +51,7 @@ curl http://127.0.0.1:5000/ready
 自动识别 `amd64` / `arm64` 与 `apt`、`dnf`、`apk` 等包管理器：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sky22333/hubproxy/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/senhao-xu/hubproxy/main/install.sh | sh
 ```
 
 安装后配置文件位于 `/etc/hubproxy/config.toml`，服务自动启动。
@@ -67,7 +67,7 @@ docker pull yourdomain.com/nginx
 wget "https://yourdomain.com/https://github.com/owner/repo/releases/download/v1.0.0/app.tar.gz"
 
 # Git clone 加速
-git clone https://yourdomain.com/https://github.com/sky22333/hubproxy.git
+git clone https://yourdomain.com/https://github.com/senhao-xu/hubproxy.git
 ```
 
 > **生产环境建议**：绑定自有域名，通过 Caddy / Nginx 反代并开启 HTTPS，不要长期暴露裸 `http://IP:5000`。详见 [文档](https://docs.52013120.xyz/getting-started/quick-start/)。
@@ -94,5 +94,5 @@ git clone https://yourdomain.com/https://github.com/sky22333/hubproxy.git
 
 **如果这个项目对你有帮助，请给个 Star ⭐**
 <!-- star-history-chart:start -->
-![sky22333/hubproxy Star 增长趋势](.github/stars.svg)
+![senhao-xu/hubproxy Star 增长趋势](.github/stars.svg)
 <!-- star-history-chart:end -->

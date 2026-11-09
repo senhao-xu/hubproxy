@@ -27,11 +27,11 @@ export default defineConfig({
         {
           icon: 'github',
           label: 'GitHub',
-          href: 'https://github.com/sky22333/hubproxy',
+          href: 'https://github.com/senhao-xu/hubproxy',
         },
       ],
       editLink: {
-        baseUrl: 'https://github.com/sky22333/hubproxy/edit/main/docs/',
+        baseUrl: 'https://github.com/senhao-xu/hubproxy/edit/main/docs/',
       },
       sidebar: [
         {
