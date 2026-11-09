@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Vue 组件规范：Select.vue 原语需遵循 defineModel/fallthrough/无障碍/样式 token 要求"}
+{"file": ".trellis/spec/backend/index.md", "reason": "后端改动入口索引，确认 Go 层规范"}
+{"file": ".trellis/tasks/11-09-download-arch-select/design.md", "reason": "技术设计：后端 platforms 修正、api.ts 类型、Select.vue、ImagesPage 组合逻辑与边界"}
+{"file": ".trellis/tasks/11-09-download-arch-select/implement.md", "reason": "执行清单、验证命令与审查门"}

@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "校验 Select.vue 是否符合组件规范（defineModel、fallthrough、a11y、focus-visible）"}
+{"file": ".trellis/tasks/11-09-download-arch-select/prd.md", "reason": "验收标准清单：真实平台下拉、variant 兼容、失败降级、批量并集"}
+{"file": ".trellis/tasks/11-09-download-arch-select/design.md", "reason": "对照设计核对边界处理：防抖/竞态/失败降级/选中重置"}
