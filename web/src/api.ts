@@ -43,8 +43,18 @@ export interface PrepareDownloadResponse {
   download_url: string
 }
 
+export interface ImageInfoData {
+  name?: string
+  mediaType?: string
+  digest?: string
+  size?: number
+  multiArch?: boolean
+  platforms?: string[]
+}
+
 export interface ImageInfoResponse {
   success: boolean
+  data?: ImageInfoData
 }
 
 export interface Repository {
@@ -91,9 +101,9 @@ export function prepareSingleDownload(params: {
   return getJSON<PrepareDownloadResponse>(`/api/image/download?${q}`)
 }
 
-export function fetchImageInfo(image: string) {
+export function fetchImageInfo(image: string, signal?: AbortSignal) {
   const q = new URLSearchParams({ image })
-  return getJSON<ImageInfoResponse>(`/api/image/info?${q}`)
+  return getJSON<ImageInfoResponse>(`/api/image/info?${q}`, { signal })
 }
 
 export function prepareBatchDownload(body: {

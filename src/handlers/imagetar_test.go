@@ -4,12 +4,57 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/go-containerregistry/pkg/v1"
 )
+
+func TestCollectPlatforms(t *testing.T) {
+	tests := []struct {
+		name      string
+		manifests []v1.Descriptor
+		want      []string
+	}{
+		{
+			name: "variant kept, deduped and sorted",
+			manifests: []v1.Descriptor{
+				{Platform: &v1.Platform{OS: "linux", Architecture: "arm", Variant: "v7"}},
+				{Platform: &v1.Platform{OS: "linux", Architecture: "amd64"}},
+				{Platform: &v1.Platform{OS: "linux", Architecture: "arm"}},
+				{Platform: &v1.Platform{OS: "linux", Architecture: "arm", Variant: "v7"}},
+				{Platform: &v1.Platform{OS: "linux", Architecture: "arm64", Variant: "v8"}},
+				{Platform: &v1.Platform{OS: "windows", Architecture: "amd64"}},
+			},
+			want: []string{"linux/amd64", "linux/arm", "linux/arm/v7", "linux/arm64/v8", "windows/amd64"},
+		},
+		{
+			name: "nil platform skipped",
+			manifests: []v1.Descriptor{
+				{Platform: nil},
+				{Platform: &v1.Platform{OS: "linux", Architecture: "amd64"}},
+			},
+			want: []string{"linux/amd64"},
+		},
+		{
+			name:      "no manifests yields empty list",
+			manifests: nil,
+			want:      []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := collectPlatforms(&v1.IndexManifest{Manifests: tt.manifests})
+			if !slices.Equal(got, tt.want) {
+				t.Fatalf("platforms = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 func TestDownloadDebouncer(t *testing.T) {
 	d := NewDownloadDebouncer(time.Minute)

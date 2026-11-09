@@ -932,6 +932,28 @@ func handleSimpleBatchDownload(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"download_url": fmt.Sprintf("/api/image/batch?token=%s", token)})
 }
 
+// collectPlatforms 从 index manifest 提取去重排序后的平台串，variant 非空时输出 os/arch/variant。
+func collectPlatforms(manifest *v1.IndexManifest) []string {
+	seen := make(map[string]struct{}, len(manifest.Manifests))
+	platforms := make([]string, 0, len(manifest.Manifests))
+	for _, m := range manifest.Manifests {
+		if m.Platform == nil {
+			continue
+		}
+		platform := m.Platform.OS + "/" + m.Platform.Architecture
+		if m.Platform.Variant != "" {
+			platform += "/" + m.Platform.Variant
+		}
+		if _, ok := seen[platform]; ok {
+			continue
+		}
+		seen[platform] = struct{}{}
+		platforms = append(platforms, platform)
+	}
+	sort.Strings(platforms)
+	return platforms
+}
+
 // handleImageInfo 处理镜像信息查询
 func handleImageInfo(c *gin.Context) {
 	imageRef := resolveImageRef(c)
@@ -977,13 +999,7 @@ func handleImageInfo(c *gin.Context) {
 		if err == nil {
 			manifest, err := index.IndexManifest()
 			if err == nil {
-				var platforms []string
-				for _, m := range manifest.Manifests {
-					if m.Platform != nil {
-						platforms = append(platforms, m.Platform.OS+"/"+m.Platform.Architecture)
-					}
-				}
-				info["platforms"] = platforms
+				info["platforms"] = collectPlatforms(manifest)
 				info["multiArch"] = true
 			}
 		}

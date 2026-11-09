@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { Archive, Boxes, Loader2 } from 'lucide-vue-next'
 import {
   fetchImageInfo,
@@ -11,22 +11,145 @@ import { errorMessage } from '@/lib/utils'
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
 import PageHero from '@/components/PageHero.vue'
+import Select from '@/components/ui/Select.vue'
 import Switch from '@/components/ui/Switch.vue'
 import Textarea from '@/components/ui/Textarea.vue'
 
 const singleImage = ref('')
-const singlePlatform = ref('linux/amd64')
+const singlePlatform = ref('')
+const singlePlatforms = ref<string[]>([])
+const singleArchLoading = ref(false)
+const singleArchError = ref('')
 const singleCompressed = ref(true)
 const singleStatus = ref('')
 const singleError = ref('')
 const singleLoading = ref(false)
 
 const batchText = ref('')
-const batchPlatform = ref('linux/amd64')
+const batchPlatform = ref('')
+const batchPlatforms = ref<string[]>([])
+const batchArchLoading = ref(false)
+const batchArchError = ref('')
 const batchCompressed = ref(true)
 const batchStatus = ref('')
 const batchError = ref('')
 const batchLoading = ref(false)
+
+let singleArchSeq = 0
+let singleArchTimer: ReturnType<typeof setTimeout> | undefined
+let singleArchController: AbortController | undefined
+
+let batchArchSeq = 0
+let batchArchTimer: ReturnType<typeof setTimeout> | undefined
+let batchArchController: AbortController | undefined
+
+const singleArchOptions = computed(() => singlePlatforms.value.map((platform) => ({ value: platform, label: platform })))
+const batchArchOptions = computed(() => batchPlatforms.value.map((platform) => ({ value: platform, label: platform })))
+
+function parseImageList(text: string): string[] {
+  return [...new Set(
+    text
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('#')),
+  )]
+}
+
+function reconcileSelection(platforms: string[], current: string): string {
+  return current && !platforms.includes(current) ? '' : current
+}
+
+function sortPlatforms(values: Iterable<string>): string[] {
+  return [...new Set(values)].sort()
+}
+
+async function loadSinglePlatforms(image: string, seq: number, controller: AbortController) {
+  try {
+    const res = await fetchImageInfo(image, controller.signal)
+    if (seq !== singleArchSeq || controller.signal.aborted) return
+    singlePlatforms.value = sortPlatforms(res.data?.platforms ?? [])
+    singleArchError.value = ''
+    singlePlatform.value = reconcileSelection(singlePlatforms.value, singlePlatform.value)
+  } catch (e) {
+    if (seq !== singleArchSeq || controller.signal.aborted) return
+    singlePlatforms.value = []
+    singleArchError.value = errorMessage(e, '获取架构失败')
+    singlePlatform.value = reconcileSelection(singlePlatforms.value, singlePlatform.value)
+  } finally {
+    if (seq === singleArchSeq && !controller.signal.aborted) singleArchLoading.value = false
+  }
+}
+
+async function loadBatchPlatforms(images: string[], seq: number, controller: AbortController) {
+  const results = await Promise.allSettled(
+    images.map((image) => fetchImageInfo(image, controller.signal)),
+  )
+  if (seq !== batchArchSeq || controller.signal.aborted) return
+  const platforms = new Set<string>()
+  let firstError: unknown
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      for (const platform of result.value.data?.platforms ?? []) {
+        platforms.add(platform)
+      }
+    } else if (firstError === undefined) {
+      firstError = result.reason
+    }
+  }
+  batchPlatforms.value = sortPlatforms(platforms)
+  batchArchError.value = batchPlatforms.value.length === 0 && firstError !== undefined
+    ? errorMessage(firstError, '获取架构失败')
+    : ''
+  batchArchLoading.value = false
+  batchPlatform.value = reconcileSelection(batchPlatforms.value, batchPlatform.value)
+}
+
+watch(singleImage, (value) => {
+  clearTimeout(singleArchTimer)
+  singleArchController?.abort()
+  const seq = ++singleArchSeq
+  const image = value.trim()
+  if (!image) {
+    singlePlatforms.value = []
+    singleArchError.value = ''
+    singleArchLoading.value = false
+    singlePlatform.value = reconcileSelection(singlePlatforms.value, singlePlatform.value)
+    return
+  }
+  singleArchLoading.value = true
+  singleArchTimer = setTimeout(() => {
+    const controller = new AbortController()
+    singleArchController = controller
+    void loadSinglePlatforms(image, seq, controller)
+  }, 500)
+})
+
+watch(batchText, (value) => {
+  clearTimeout(batchArchTimer)
+  batchArchController?.abort()
+  const seq = ++batchArchSeq
+  const images = parseImageList(value)
+  if (images.length === 0) {
+    batchPlatforms.value = []
+    batchArchError.value = ''
+    batchArchLoading.value = false
+    batchPlatform.value = reconcileSelection(batchPlatforms.value, batchPlatform.value)
+    return
+  }
+  batchArchLoading.value = true
+  batchArchTimer = setTimeout(() => {
+    const controller = new AbortController()
+    batchArchController = controller
+    void loadBatchPlatforms(images, seq, controller)
+  }, 500)
+})
+
+onBeforeUnmount(() => {
+  clearTimeout(singleArchTimer)
+  singleArchController?.abort()
+  clearTimeout(batchArchTimer)
+  batchArchController?.abort()
+})
 
 async function preflight(images: string[]) {
   for (const image of [...new Set(images)]) {
@@ -69,10 +192,7 @@ async function onSingleSubmit() {
 async function onBatchSubmit() {
   batchError.value = ''
   batchStatus.value = ''
-  const images = batchText.value
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith('#'))
+  const images = parseImageList(batchText.value)
 
   if (images.length === 0) {
     batchError.value = '请输入镜像列表'
@@ -134,8 +254,15 @@ async function onBatchSubmit() {
               <Input v-model="singleImage" placeholder="nginx 或 user/app:tag" />
             </label>
             <label class="min-w-0">
-              <span class="field-label">目标架构（可选）</span>
-              <Input v-model="singlePlatform" placeholder="linux/amd64" />
+              <span class="field-label">目标架构</span>
+              <Select
+                v-model="singlePlatform"
+                :options="singleArchOptions"
+                :disabled="singleArchLoading"
+                placeholder="自动选择"
+              />
+              <span v-if="singleArchLoading" role="status" class="field-hint">正在获取架构...</span>
+              <span v-else-if="singleArchError" role="alert" class="field-hint text-destructive">{{ singleArchError }}</span>
             </label>
             <div class="min-w-0">
               <span class="field-label">压缩层</span>
@@ -182,8 +309,15 @@ async function onBatchSubmit() {
             </label>
             <div class="field-block min-w-0">
               <label class="min-w-0">
-                <span class="field-label">目标架构（可选）</span>
-                <Input v-model="batchPlatform" placeholder="linux/amd64" />
+                <span class="field-label">目标架构</span>
+                <Select
+                  v-model="batchPlatform"
+                  :options="batchArchOptions"
+                  :disabled="batchArchLoading"
+                  placeholder="自动选择"
+                />
+                <span v-if="batchArchLoading" role="status" class="field-hint">正在获取架构...</span>
+                <span v-else-if="batchArchError" role="alert" class="field-hint text-destructive">{{ batchArchError }}</span>
               </label>
               <div class="min-w-0">
                 <span class="field-label">压缩层</span>
