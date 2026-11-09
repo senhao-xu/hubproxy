@@ -1,0 +1,2 @@
+{"file":".trellis/spec/frontend/index.md","reason":"Verify the final changes against the available frontend project guidance."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Check that shared visual patterns are consistent without unnecessary abstraction."}
